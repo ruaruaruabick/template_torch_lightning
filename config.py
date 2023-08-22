@@ -5,7 +5,7 @@ TrainerArgs = {
 
     #config devices
     'accelerator' : 'gpu', # or'gpu'
-    "precision" : "16-mixed", # half
+    "precision" : "16", # half
     "devices" : [],
     "strategy":"ddp_find_unused_parameters_true",
 
@@ -23,16 +23,19 @@ TrainerArgs = {
     "logger" : True #ses the default TensorBoardLogger 
 }
 
-DataLoaderConfig:{
+dataloaderArgs:{
     "batch_size" : 64,
     "shuffle" : True,
-    "num_workers" : 16,
+    "num_workers" : 0, #0 for debug
     "pin_memory" : True,
     "drop_last" : False,
 }
-
+ModelArgs:{
+    "ema":.995,
+}
 class Config(object):
     seed = 42
-    dataloaderconfig = DataLoaderConfig
+    modelargs = ModelArgs
+    dataloaderargs = dataloaderArgs
     trainerargs = TrainerArgs
     pass
