@@ -10,11 +10,19 @@ class MyModel(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         self.log("loss",losses['loss'],prog_bar = True,)
-        self.log_dict({"global_step":self.trainer.global_step},prog_bar = True,sync_dist=True)
+        self.log_dict({"global_step":self.trainer.global_step},prog_bar = True)
         return losses
 
     def validation_step(self, batch, batch_idx):
-        self.log("loss",losses['loss'],sync_dist=True,prog_bar = True, rank_zero_only = True)
+        self.log("loss",losses['loss'],sync_dist=True,prog_bar = True)
+
+        logger = self.logger.experiment
+        step = self.trainer.global_step
+
+        logger.add_figure("name", fig, step)
+        logger.add_audio("name",wav,step,sample_rate=,)
+        
+        plt.close()
         return losses['loss']
     
     def test_step(self, batch, batch_idx):

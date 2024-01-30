@@ -8,6 +8,7 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 import torch
 
+#for high-performance gpu
 torch.set_float32_matmul_precision('high')
 
 #load config
@@ -28,6 +29,6 @@ ckpt = None
 
 ######################training######################
 lr_monitor = LearningRateMonitor(logging_interval='step')
-ckpt_monitor = ModelCheckpoint(verbose=True,every_n_train_steps = 1000,save_last =True, save_top_k=-1)
+ckpt_monitor = ModelCheckpoint(verbose=True,every_n_train_steps = 1000,save_last =True, save_top_k=-1, dirpath=None)
 trainer = pl.Trainer(callbacks=[lr_monitor,ckpt_monitor],**config['trainerargs'])
 trainer.fit(model,train_dataloaders=train_loader,val_dataloaders=valid_loader,ckpt_path=ckpt)
