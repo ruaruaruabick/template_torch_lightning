@@ -1,7 +1,6 @@
 from torch.utils.data import Dataset,DataLoader
 import torch
 
-from config import DataLoaderConfig
 def collate_fn(batch):
     batch = torch.as_tensor(batch)
     return batch

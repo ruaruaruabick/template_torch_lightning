@@ -1,35 +1,36 @@
 import torch
 import lightning.pytorch as pl
 from torch_ema import ExponentialMovingAverage
-
+#GAN:https://lightning.ai/docs/pytorch/2.0.0/notebooks/lightning_examples/basic-gan.html
 class MyModel(pl.LightningModule):
     def __init__(self, params):
         super().__init__()
         self.save_hyperparameters()
-        self.ema = ExponentialMovingAverage(self.diffusion.parameters(), decay=params.modelargs["ema"])
+        self.ema = ExponentialMovingAverage(self.model.parameters(), decay=params.modelargs["ema"])
     
     def training_step(self, batch, batch_idx):
-
-        self.log("loss",losses['loss'])
-        if self.trainer.global_step % 50 == 0:
-            print("step:{},loss:{}".format(self.trainer.global_step,losses['loss']))
-
+        self.log("loss",losses['loss'],prog_bar = True,)
+        self.log_dict({"global_step":self.trainer.global_step},prog_bar = True,sync_dist=True)
         return losses
-    
+
     def validation_step(self, batch, batch_idx):
-        self.diffusion.eval()
-            with torch.no_grad():
-        self.diffusion.train()
+        self.log("loss",losses['loss'],sync_dist=True,prog_bar = True, rank_zero_only = True)
+        return losses['loss']
+    
+    def test_step(self, batch, batch_idx):
         return losses['loss']
     
     def configure_optimizers(self):
         # warm_up_with_cosine_lr
-        optimizer = torch.optim.AdamW(self.diffusion.parameters(),lr=self.args.optimizerargs['lr'],betas=self.args.optimizerargs['betas'],weight_decay=self.args.optimizerargs['weight_decay'])
-        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, self.args.schedulerArgs['function'])
+        optimizer = torch.optim.AdamW(self.model.parameters(),lr=self.args.optimizerargs['lr'],betas=self.args.optimizerargs['betas'],weight_decay=self.args.optimizerargs['weight_decay'])
+        scheduler = torch.optim.lr_scheduler.LambdaLR(lambda epoch: epoch / SchedulerArgs['warm_up_epochs'] if epoch <= SchedulerArgs['warm_up_epochs'] 
+                                                      else 0.5 * ( math.cos((epoch - SchedulerArgs['warm_up_epochs']) /(TrainerArgs['max_epochs'] - SchedulerArgs['warm_up_epochs']) * math.pi) + 1), self.args.schedulerArgs['function'])
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
+                'interval': 'step', # or 'epoch'
+                'frequency': 1,
             },
         }
 
