@@ -14,6 +14,8 @@ class MyModel(pl.LightningModule):
         return losses
 
     def validation_step(self, batch, batch_idx):
+        with self.ema.average_parameters():
+            #forward
         self.log("loss",losses['loss'],sync_dist=True,prog_bar = True)
 
         logger = self.logger.experiment
