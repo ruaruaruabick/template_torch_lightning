@@ -1,3 +1,4 @@
+import math
 import torch
 import lightning.pytorch as pl
 from torch_ema import ExponentialMovingAverage
@@ -66,15 +67,23 @@ class MyModel(pl.LightningModule):
         g_sch.step()
         d_sch.step()
 
+    def __cosine_scheduler(self,step):
+        init_lr = self.config["optimizer"]["lr"]
+        last_lr = self.config["scheduler"]["last_lr"]
+        warmupstep = self.config["scheduler"]["warmup_steps"]
+        totalstep = self.config["trainer"]["max_steps"]
+        if step < warmupstep:
+            return (step+1) / warmupstep
+        else:
+            cosine_rate = 0.5 * ( math.cos((step - warmupstep) /(totalstep - warmupstep) * math.pi) + 1)
+            return (cosine_rate * (init_lr - last_lr)+last_lr) / init_lr
+        
     def configure_optimizers(self):
         # warm_up_with_cosine_lr
-        MAX_STEP = 2000000
-        WARMUP_STEP = 1000
-        optimizer_g = torch.optim.AdamW(self.generator.parameters(),lr=self.optimizerargs['lr'],betas=self.optimizerargs['betas'],weight_decay=self.optimizerargs['weight_decay'])
-        optimizer_d = torch.optim.AdamW(self.discriminator.parameters()),lr=self.optimizerargs['lr'],betas=self.optimizerargs['betas'],weight_decay=self.optimizerargs['weight_decay'])
-        fun_sch = lambda epoch:(epoch+1) / WARMUP_STEP if epoch < WARMUP_STEP else 0.5 * ( math.cos((epoch - WARMUP_STEP) /(MAX_STEP - WARMUP_STEP) * math.pi) + 1)
-        scheduler_g = torch.optim.lr_scheduler.LambdaLR(optimizer_g, fun_sch)
-        scheduler_d = torch.optim.lr_scheduler.LambdaLR(optimizer_d, fun_sch)
+        optimizer_g = torch.optim.AdamW(self.generator.parameters(),**self.config["optimizer"])
+        optimizer_d = torch.optim.AdamW(self.discriminator.parameters()),**self.config["optimizer"])
+        scheduler_g = torch.optim.lr_scheduler.LambdaLR(optimizer_g, self.__cosine_scheduler)
+        scheduler_d = torch.optim.lr_scheduler.LambdaLR(optimizer_d, self.__cosine_scheduler)
         return [optimizer_g,optimizer_d],[scheduler_g,scheduler_d],
     
     #optional

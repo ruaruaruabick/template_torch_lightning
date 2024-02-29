@@ -1,11 +1,13 @@
+import math
 import torch
 import lightning.pytorch as pl
 from torch_ema import ExponentialMovingAverage
-#GAN:https://lightning.ai/docs/pytorch/2.0.0/notebooks/lightning_examples/basic-gan.html
+
 class MyModel(pl.LightningModule):
     def __init__(self, params):
         super().__init__()
         self.save_hyperparameters()
+        self.config = params
         self.ema = ExponentialMovingAverage(self.model.parameters(), decay=params.modelargs["ema"])
     
     def training_step(self, batch, batch_idx):
@@ -30,11 +32,21 @@ class MyModel(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         return losses['loss']
     
+    def __cosine_scheduler(self,step):
+        init_lr = self.config["optimizer"]["lr"]
+        last_lr = self.config["scheduler"]["last_lr"]
+        warmupstep = self.config["scheduler"]["warmup_steps"]
+        totalstep = self.config["trainer"]["max_steps"]
+        if step < warmupstep:
+            return (step+1) / warmupstep
+        else:
+            cosine_rate = 0.5 * ( math.cos((step - warmupstep) /(totalstep - warmupstep) * math.pi) + 1)
+            return (cosine_rate * (init_lr - last_lr)+last_lr) / init_lr
+        
     def configure_optimizers(self):
         # warm_up_with_cosine_lr
-        optimizer = torch.optim.AdamW(self.model.parameters(),lr=self.args.optimizerargs['lr'],betas=self.args.optimizerargs['betas'],weight_decay=self.args.optimizerargs['weight_decay'])
-        scheduler = torch.optim.lr_scheduler.LambdaLR(lambda epoch: epoch / SchedulerArgs['warm_up_epochs'] if epoch <= SchedulerArgs['warm_up_epochs'] 
-                                                      else 0.5 * ( math.cos((epoch - SchedulerArgs['warm_up_epochs']) /(TrainerArgs['max_epochs'] - SchedulerArgs['warm_up_epochs']) * math.pi) + 1), self.args.schedulerArgs['function'])
+        optimizer = torch.optim.AdamW(self.parameters(),**self.config["optimizer"])
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, self.__cosine_scheduler)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

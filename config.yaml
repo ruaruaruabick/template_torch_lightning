@@ -33,12 +33,13 @@ ema:
     decay: .995
 
 optimizer:
-    lr: 1e-5
-    betas: (.9,.999)
+    lr: 1.0e-5
+    betas: [.9,.999]
     weight_decay: .001
 
 scheduler:
     warm_up_epochs: 1000
+    last_lr: 1.0e-6
     #cosine 
 
 seed: 42
