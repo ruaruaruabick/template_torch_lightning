@@ -1,7 +1,7 @@
 import yaml
 import os
 import argparse
-import re
+import glob
 
 from datasets import MyDataset,collate_fn
 from model import MyModel
@@ -32,23 +32,11 @@ def main(args):
     #load checkpoint
     ckpt_dir = "lightning_logs"
     if args.restore_step != "":
-        file_pattern = rf'epoch=(\d+)-step={args.restore_step}\.ckpt'
-        for filename in os.listdir(ckpt_dir):
-            if re.match(file_pattern, filename):
-                ckpt = f'{ckpt_dir}/{filename}'
-                break
+        pattern = f'{ckpt_dir}/epoch=*-step={args.restore_step}.ckpt'
     else:
-        file_pattern = r'epoch=(\d+)-step=(\d+)\.ckpt'
-        max_num = -1
-        max_filename = None
-        for filename in os.listdir(ckpt_dir):
-            if re.match(file_pattern, filename):
-                match = re.search(file_pattern, filename)
-                current_num = int(match.group(2))
-                if current_num > max_num:
-                    max_num = current_num
-                    max_filename = filename
-        ckpt = f'{ckpt_dir}/{max_filename}'
+        pattern = f'{ckpt_dir}/epoch=*-step=*.ckpt'
+    ckpts = glob.glob(pattern)
+    ckpt = sorted(ckpts,reverse=True)[0]
         
         
     ckpt = ckpt if os.path.exists(ckpt) else None
