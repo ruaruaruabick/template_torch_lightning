@@ -1,6 +1,7 @@
 import yaml
 import os
 import argparse
+import re
 
 from datasets import MyDataset,collate_fn
 from model import MyModel
@@ -29,7 +30,27 @@ def main(args):
     model = MyModel(config)
 
     #load checkpoint
-    ckpt = "lightning_logs/{}.ckpt".format(args.restore_step)
+    ckpt_dir = "lightning_logs"
+    if args.restore_step != "":
+        file_pattern = rf'epoch=(\d+)-step={args.restore_step}\.ckpt'
+        for filename in os.listdir(ckpt_dir):
+            if re.match(file_pattern, filename):
+                ckpt = f'{ckpt_dir}/{filename}'
+                break
+    else:
+        file_pattern = r'epoch=(\d+)-step=(\d+)\.ckpt'
+        max_num = -1
+        max_filename = None
+        for filename in os.listdir(ckpt_dir):
+            if re.match(file_pattern, filename):
+                match = re.search(file_pattern, filename)
+                current_num = int(match.group(2))
+                if current_num > max_num:
+                    max_num = current_num
+                    max_filename = filename
+        ckpt = f'{ckpt_dir}/{max_filename}'
+        
+        
     ckpt = ckpt if os.path.exists(ckpt) else None
     if args.finetune:
         model = Model.load_from_checkpoint(ckpt,config = config)
@@ -52,7 +73,7 @@ if __name__ == '__main__':
     )
     parser.add_argument("--restore_step",
         type=str,
-        default="last",
+        default="",
         help="restore_step of ckpt",
     )
     parser.add_argument('--finetune', '-ft',

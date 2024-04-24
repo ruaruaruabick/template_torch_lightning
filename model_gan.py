@@ -38,7 +38,7 @@ class MyModel(pl.LightningModule):
         d_opt.step()
 
         #optimize generator
-        loss_gen_all
+        loss_gen_all = loss
 
         g_opt.zero_grad()
         self.ema_g.to(self.device)
@@ -56,6 +56,7 @@ class MyModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         with self.ema_g.average_parameters():
             #forward
+            
         self.log("loss",losses['loss'],sync_dist=True,prog_bar = True, rank_zero_only = True)
         return losses['loss']
     
@@ -77,11 +78,11 @@ class MyModel(pl.LightningModule):
         else:
             cosine_rate = 0.5 * ( math.cos((step - warmupstep) /(totalstep - warmupstep) * math.pi) + 1)
             return (cosine_rate * (init_lr - last_lr)+last_lr) / init_lr
-        
+    
     def configure_optimizers(self):
         # warm_up_with_cosine_lr
         optimizer_g = torch.optim.AdamW(self.generator.parameters(),**self.config["optimizer"])
-        optimizer_d = torch.optim.AdamW(self.discriminator.parameters()),**self.config["optimizer"])
+        optimizer_d = torch.optim.AdamW(self.discriminator.parameters(),**self.config["optimizer"])
         scheduler_g = torch.optim.lr_scheduler.LambdaLR(optimizer_g, self.__cosine_scheduler)
         scheduler_d = torch.optim.lr_scheduler.LambdaLR(optimizer_d, self.__cosine_scheduler)
         return [optimizer_g,optimizer_d],[scheduler_g,scheduler_d],
