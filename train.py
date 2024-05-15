@@ -71,7 +71,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--output_dir',
                         type=str,
-                        default="lightning_logs/"
+                        default="lightning_logs/",
                         help='Directory to save checkpoints',
     )
     args = parser.parse_args()
