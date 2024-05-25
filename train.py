@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 import torch
+from lightning.pytorch.loggers import WandbLogger
 
 assert torch.cuda.is_available(), "CPU training is not allowed."
 #for high-performance gpu
@@ -49,6 +50,8 @@ def main(args):
     ######################training######################
     lr_monitor = LearningRateMonitor(logging_interval='step')
     ckpt_monitor = ModelCheckpoint(verbose=True,every_n_train_steps = 1000,save_last =True, save_top_k=-1, dirpath=args.output_dir)
+    wandb_logger = WandbLogger(project='',name='',log_model="all",resume=True,save_dir=args.output_dir)
+    # wandb_logger.watch(model,log_graph=False)
     trainer = pl.Trainer(callbacks=[lr_monitor,ckpt_monitor],**config['trainerargs'])
     trainer.fit(model,train_dataloaders=train_loader,val_dataloaders=valid_loader,ckpt_path=ckpt)
 

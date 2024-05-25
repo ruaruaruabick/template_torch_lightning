@@ -20,7 +20,7 @@ trainer:
     #default
     benchmark: True #set true if input size is not changing
     enable_checkpointing: True #saves the most recent model to a single checkpoint after each epoch
-    logger: True #ses the default TensorBoardLogger 
+    # logger: True #ses the default TensorBoardLogger 
 
 dataloader:
     batch_size : 64 # bs per gpu
