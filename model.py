@@ -2,6 +2,7 @@ import math
 import torch
 import lightning.pytorch as pl
 from torch_ema import ExponentialMovingAverage
+from lightning.pytorch.utilities import grad_norm
 
 class MyModel(pl.LightningModule):
     def __init__(self, params):
@@ -59,6 +60,19 @@ class MyModel(pl.LightningModule):
     def on_before_zero_grad(self, *args, **kwargs):
         self.ema.to(self.device)
         self.ema.update()
+    
+    def on_before_optimizer_step(self, optimizer):
+        # Compute the 2-norm for each layer
+        # If using mixed precision, the gradients are already unscaled here
+        norms = grad_norm(self.layer, norm_type=2)
+        
+        def get_norm(self, model, threshold=1.0):
+            norms = grad_norm(model, norm_type=2)
+            norms = {k:v for k,v in norms.items() if v.item() > threshold}
+            return norms
+        
+        norms = get_norm(self.model)
+        self.log_dict(norms)
     
     #optional
     def forward(self):

@@ -52,7 +52,7 @@ def main(args):
     ckpt_monitor = ModelCheckpoint(verbose=True,every_n_train_steps = 1000,save_last =True, save_top_k=-1, dirpath=args.output_dir)
     wandb_logger = WandbLogger(project='',name='',log_model="all",resume=True,save_dir=args.output_dir)
     # wandb_logger.watch(model,log_graph=False)
-    trainer = pl.Trainer(callbacks=[lr_monitor,ckpt_monitor],**config['trainerargs'])
+    trainer = pl.Trainer(callbacks=[lr_monitor,ckpt_monitor],**config['trainerargs'],logger=wandb_logger)
     trainer.fit(model,train_dataloaders=train_loader,val_dataloaders=valid_loader,ckpt_path=ckpt)
 
 if __name__ == '__main__':

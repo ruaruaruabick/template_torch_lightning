@@ -1,6 +1,7 @@
 import math
 import torch
 import lightning.pytorch as pl
+from lightning.pytorch.utilities import grad_norm
 from torch_ema import ExponentialMovingAverage
 #GAN:https://lightning.ai/docs/pytorch/2.0.0/notebooks/lightning_examples/basic-gan.html
 class MyModel(pl.LightningModule):
@@ -33,8 +34,10 @@ class MyModel(pl.LightningModule):
         self.ema_d.to(self.device)
         self.ema_d.update()
         self.manual_backward(loss_disc_all)
-        #gradient clip 
-        self.clip_gradients(d_opt,1.0,'norm')
+        #gradient clip and log
+        self.clip_gradients(d_opt,100.,'value')
+        norms = self.get_norm(self.model)
+        self.log_dict(norms)
         d_opt.step()
 
         #optimize generator
@@ -44,8 +47,10 @@ class MyModel(pl.LightningModule):
         self.ema_g.to(self.device)
         self.ema_g.update()
         self.manual_backward(loss_gen_all)
-        #gradient clip 
-        self.clip_gradients(g_opt,1.0,'norm')
+        #gradient clip and log
+        self.clip_gradients(d_opt,100.,'value')
+        norms = self.get_norm(self.model)
+        self.log_dict(norms)
         # self.get_grad_dict(self.generator,'g')
         g_opt.step()
 
@@ -53,6 +58,11 @@ class MyModel(pl.LightningModule):
         self.log_dict({"global_step":self.trainer.global_step},prog_bar = True)
         return losses
 
+    def get_norm(self, model, threshold=1.0):
+        norms = grad_norm(model, norm_type=2)
+        norms = {k:v for k,v in norms.items() if v.item() > threshold}
+        return norms
+    
     def validation_step(self, batch, batch_idx):
         with self.ema_g.average_parameters():
             #forward
