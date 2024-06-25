@@ -1,28 +1,32 @@
+seed: 42
 trainer:
     # see https://lightning.ai/docs/pytorch/stable/common/trainer.html
 
     #config devices
-    accelerator : 'gpu' # or'gpu'
-    precision : "16-mixed" # half
+    accelerator : 'gpu' # or'cpu'
+    precision : "32" # 16-mixed, bf16-mixed, 32
     devices : -1
     strategy: "ddp_find_unused_parameters_true"
 
     # for debugging
     fast_dev_run : False #runs only 1 training and 1 validation batch and the program ends
-    limit_train_batches: .1 #1.0 for all batch
+    limit_train_batches: 1.0 #1.0 for all batch
 
     log_every_n_steps: 50
     max_steps : 10000 # or set max_epochs
     accumulate_grad_batches : 1
-    val_check_interval: 1000
-    # gradient_clip_val: 100
-    # gradient_clip_algorithm: 'value'
-    #total_batch = batch * accumulate_grad_batches * num_batch
+    # val_check_interval: 1000
+    # gradient_clip_val: 10
+    # gradient_clip_algorithm: 'value' # 'norm', 'value'
+    #total_batch = batch * accumulate_grad_batches * num_gpus
 
     #default
     benchmark: True #set true if input size is not changing
     enable_checkpointing: True #saves the most recent model to a single checkpoint after each epoch
-    # logger: True #ses the default TensorBoardLogger 
+
+save_every_n_steps: 10000
+
+ema: .995
 
 dataloader:
     batch_size : 64 # bs per gpu
@@ -31,17 +35,14 @@ dataloader:
     pin_memory : True
     drop_last : False
 
-ema:
-    decay: .995
-
 optimizer:
     lr: 1.0e-5
     betas: [.9,.999]
-    weight_decay: .001
+    weight_decay: .01
 
 scheduler:
     warm_up_epochs: 1000
     last_lr: 1.0e-6
     #cosine 
 
-seed: 42
+

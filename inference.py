@@ -1,24 +1,39 @@
-import torch
+import yaml
 import lightning.pytorch as pl
+from datasets.dataset import MyDataset
+from torch.utils.data import DataLoader
+import torch
+import os
+from tqdm import tqdm
+import soundfile as sf
 
-from model import MyModel
-from config import Config
+CKPTPATH = 'last.ckpt'
+CONFIGPATH = 'configs/default.yaml'
+TARGETPATH = 'testresults/'
+DEVICE = 'cpu'
+os.makedirs(TARGETPATH, exist_ok=True)
 
-#set device
-device = torch.device()
+config = yaml.load(open(CONFIGPATH, "r"), Loader=yaml.FullLoader)
+pl.seed_everything(config['seed'],workers=True)
 
-#seed
-pl.seed_everything(config.seed,workers=True)
+#load data
+dataconfig = config['data']
+test_list = 
+test_data = MyDataset(test_list)
+config['dataloader']['batch_size'] = 1
+config['dataloader']['num_workers'] = 0
+test_loader = DataLoader(test_data, **config['dataloader'])
 
-#load config
-config = Config().configargs
+#load model
+sds = torch.load(CKPTPATH, map_location=DEVICE)
+sd, emad = sds['state_dict'], sds['ema']
 
-#define model
-model = MyModel(**config)
-
-#load checkpoint
-dir = None
-assert dir != None
-model.load_from_checkpoint(dir,map_location=device)
+model = model(config).to(DEVICE)
+model.load_state_dict(sd)
+model.ema.load_state_dict(emad)
 model.eval()
-######################testing######################
+model.freeze()
+model.ema.copy_to()
+with torch.inference_mode():
+    for idx, data in enumerate(tqdm(test_loader)):    
+        pass

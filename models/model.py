@@ -3,12 +3,14 @@ import torch
 import lightning.pytorch as pl
 from torch_ema import ExponentialMovingAverage
 from lightning.pytorch.utilities import grad_norm
+from deepspeed.ops.adam import FusedAdam
 
 class MyModel(pl.LightningModule):
     def __init__(self, params):
         super().__init__()
         self.save_hyperparameters()
         self.config = params
+        
         self.ema = ExponentialMovingAverage(self.model.parameters(), decay=params.modelargs["ema"])
     
     def training_step(self, batch, batch_idx):
@@ -30,9 +32,10 @@ class MyModel(pl.LightningModule):
         plt.close()
         return losses['loss']
     
-    def test_step(self, batch, batch_idx):
-        return losses['loss']
+    def forward(self):
+        return
     
+    #some hooks
     def __cosine_scheduler(self,step):
         init_lr = self.config["optimizer"]["lr"]
         last_lr = self.config["scheduler"]["last_lr"]
@@ -46,7 +49,7 @@ class MyModel(pl.LightningModule):
         
     def configure_optimizers(self):
         # warm_up_with_cosine_lr
-        optimizer = torch.optim.AdamW(self.parameters(),**self.config["optimizer"])
+        optimizer = FusedAdam(self.parameters(),**self.config["optimizer"])
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, self.__cosine_scheduler)
         return {
             "optimizer": optimizer,
@@ -57,6 +60,10 @@ class MyModel(pl.LightningModule):
             },
         }
 
+    def on_save_checkpoint(self, checkpoint):
+        checkpoint["ema"] = self.ema.state_dict()
+        return checkpoint
+    
     def on_before_zero_grad(self, *args, **kwargs):
         self.ema.to(self.device)
         self.ema.update()
@@ -64,17 +71,9 @@ class MyModel(pl.LightningModule):
     def on_before_optimizer_step(self, optimizer):
         # Compute the 2-norm for each layer
         # If using mixed precision, the gradients are already unscaled here
-        norms = grad_norm(self.layer, norm_type=2)
-        
-        def get_norm(self, model, threshold=1.0):
-            norms = grad_norm(model, norm_type=2)
-            norms = {k:v for k,v in norms.items() if v.item() > threshold}
-            return norms
-        
-        norms = get_norm(self.model)
-        self.log_dict(norms)
+
+        norms = grad_norm(self, norm_type=2)
+        self.log(f"gradients/norm_{2.0}",norms[f"grad_{2.0}_norm_total"],)
     
-    #optional
-    def forward(self):
-        return
+
     
